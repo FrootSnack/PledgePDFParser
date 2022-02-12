@@ -4,8 +4,7 @@ import regex as re
 import textract
 import subprocess
 
-# Implemented: Amount, total $, pledge count, CC y/n, PID, surname, index
-# To be implemented:  designation(s)
+# Implemented: Amount, total $, pledge count, CC y/n, PID, surname, index, designation(s)
 
 
 class Pledge:
@@ -22,6 +21,10 @@ class Pledge:
         self.amount: float = -1.0
         # The index in the list of text rows that marks the start of the pledge information.
         self.index: int = -1
+
+    def __str__(self):
+        return f"Pledge object\nCC: {self.cc}\nSurname: {self.surname}\nPID: {self.pid}\n" \
+               f"Amount: {self.amount}\nDesignation(s): {', '.join(self.designation)}\nIndex: {self.index}\n"
 
     def is_complete(self) -> bool:
         """Checks to see whether all fields of the Pledge object are filled."""
@@ -53,14 +56,17 @@ def find_nth(elts, element, n) -> int:
     return -1
 
 
-def find_pledge_by_index(pledges, ind) -> int:
+def find_pledge_by_index(pledges, text_len, ind) -> int:
     """Returns the list index Pledge in the provided list that matches the provided index if present and -1 otherwise"""
-    for x in range(len(pledges)):
-        if x == len(pledges)-1:
-            return len(pledges)-1
-        if pledges[x].index <= ind < pledges[x + 1].index:
-            return x
-    return -1
+    if ind > text_len-1:
+        return -1
+    counter = 0
+    for p in pledges:
+        if counter == len(pledges)-1:
+            return counter
+        if p.index <= ind < pledges[counter+1].index:
+            return counter
+        counter += 1
 
 
 def main():
@@ -69,28 +75,31 @@ def main():
     text = [line.strip() for line in text if len(line)]
     print("Finished reading pdf...")
 
+    # for t in text:
+    #     print(t)
+    # exit()
+
     total_amt = float(''.join([i for i in text[find_last(text, "Total Amount:") + 1] if i not in ['$', ',']]))
     pledge_count = int(text[text.index("TOTAL PLEDGES:") + 1])
 
     pledges = []
     for x in range(pledge_count):
         p = Pledge()
-        p.amount = float(text[find_nth(text, "Total Amount:", x+1)+3])
         p.cc = "X" if text[find_nth(text, "Pledge Type:", x+1)+3] == "Credit Card" else " "
         pledges.append(p)
 
     out_str = ""
 
-    for t in text:
-        print(t)
-    exit()
+
 
     # new loop
     amt_counter = 0
     id_counter = 0
     curr_index = 0
     for line in text:
-        if amt_counter<pledge_count and all(x=='$' for x in [line[0],text[curr_index-1][0],text[curr_index-2][0]]):
+        # print(line)
+        if amt_counter<pledge_count and curr_index>=2 and \
+                all(x=='$' for x in [line[0],text[curr_index-1][0],text[curr_index-2][0]]):
             pledges[amt_counter].amount = float(''.join([i for i in line if i not in ['$', ',']]))
             print(pledges[amt_counter].amount)
             amt_counter += 1
@@ -99,10 +108,17 @@ def main():
             pledges[id_counter].surname = line.split('     ')[1].split(',')[0]
             pledges[id_counter].index = curr_index
             id_counter += 1
-        elif '*' in line:
-            pledges[find_pledge_by_index(pledges, curr_index)].add_designation(line)
         curr_index += 1
-    exit()
+
+    curr_index = 0
+    for line in text:
+        if '*' in line:
+            des = line
+            if any(x not in des for x in ['(', ')']):
+                des += text[curr_index + 1]
+            pledges[find_pledge_by_index(pledges, len(text), curr_index)].add_designation(des)
+        curr_index += 1
+
 
 
 
@@ -164,7 +180,7 @@ def main():
 
     # new below
     for p in pledges:
-        out_line = ','.join([str(p.pid), p.surname, p.designation, str(p.amount), p.cc])
+        out_line = ','.join([str(p.pid), p.surname, '/'.join(p.designation), str(p.amount), p.cc])
         print(out_line)
         out_str += out_line + '\n'
 
