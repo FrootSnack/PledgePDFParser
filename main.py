@@ -1,21 +1,23 @@
+from typing import List
+
 import regex as re
 import textract
 import subprocess
 
+# Implemented: Amount, total $, pledge count, CC y/n, PID, surname, index
+# To be implemented:  designation(s)
 
-# Tsai got CC & designation overwritten with info from Yow.
-# Campbell and Castro have no changes from Carmichael.
 
 class Pledge:
     def __init__(self):
         # 'X' if the pledge was on a credit card and ' ' if it was not.
         self.cc: str = ''
-        # An integer representation of the prospect's PID.
-        self.pid: int = -1
+        # A string representation of the prospect's PID.
+        self.pid: str = ''
         # The prospect's surname.
         self.surname: str = ''
-        # The designation or designations for the pledge.
-        self.designation: str = ''
+        # A list of the designation or designations for the pledge.
+        self.designation: List[str] = []
         # A float representation of the pledge amount.
         self.amount: float = -1.0
         # The index in the list of text rows that marks the start of the pledge information.
@@ -23,8 +25,12 @@ class Pledge:
 
     def is_complete(self) -> bool:
         """Checks to see whether all fields of the Pledge object are filled."""
-        return '' not in [self.cc, self.surname, self.designation] and -1 not in [self.pid, int(self.amount),
-                                                                                  self.index]
+        return '' not in [self.cc, self.surname] and -1 not in [self.pid, int(self.amount), self.index] \
+               and len(self.designation) != 0
+
+    def add_designation(self, designation):
+        """Appends the desired element to the self.designation List."""
+        self.designation.append(designation)
 
 
 def find_last(elts, element) -> int:
@@ -47,9 +53,19 @@ def find_nth(elts, element, n) -> int:
     return -1
 
 
+def find_pledge_by_index(pledges, ind) -> int:
+    """Returns the list index Pledge in the provided list that matches the provided index if present and -1 otherwise"""
+    for x in range(len(pledges)):
+        if x == len(pledges)-1:
+            return len(pledges)-1
+        if pledges[x].index <= ind < pledges[x + 1].index:
+            return x
+    return -1
+
+
 def main():
     print("Started script...")
-    text = textract.process('C:\\Users\\nolan\\PycharmProjects\\PledgePDFParser\\temp.pdf').decode('utf-8').split('\n')
+    text = textract.process('temp.pdf').decode('utf-8').split('\n')
     text = [line.strip() for line in text if len(line)]
     print("Finished reading pdf...")
 
@@ -59,31 +75,36 @@ def main():
     pledges = []
     for x in range(pledge_count):
         p = Pledge()
+        p.amount = float(text[find_nth(text, "Total Amount:", x+1)+3])
+        p.cc = "X" if text[find_nth(text, "Pledge Type:", x+1)+3] == "Credit Card" else " "
         pledges.append(p)
 
-    out_str = ''
+    out_str = ""
 
     for t in text:
         print(t)
     exit()
 
-
-
     # new loop
     amt_counter = 0
+    id_counter = 0
     curr_index = 0
     for line in text:
-        if amt_counter < pledge_count and line[0] == '$' and text[curr_index - 1][0] == '$' and text[curr_index - 2][
-            0] == '$':
+        if amt_counter<pledge_count and all(x=='$' for x in [line[0],text[curr_index-1][0],text[curr_index-2][0]]):
             pledges[amt_counter].amount = float(''.join([i for i in line if i not in ['$', ',']]))
             print(pledges[amt_counter].amount)
             amt_counter += 1
+        elif id_counter<pledge_count and len(line.split('     ')) == 3:
+            pledges[id_counter].pid = line.split('     ')[0]
+            pledges[id_counter].surname = line.split('     ')[1].split(',')[0]
+            pledges[id_counter].index = curr_index
+            id_counter += 1
+        elif '*' in line:
+            pledges[find_pledge_by_index(pledges, curr_index)].add_designation(line)
         curr_index += 1
     exit()
 
-    for x in range(pledge_count):
-        print(text[find_nth(text, "Total Amount:", x + 1) + 3])
-        print()
+
 
     # counter = 0
     # pledge = {'CC': '', 'Designation': '', 'Amount': '', 'PID': '', 'Surname': ''}
