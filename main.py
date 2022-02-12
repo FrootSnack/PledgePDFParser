@@ -17,21 +17,24 @@ class Pledge:
         self.designation = None
         self.amount = None
 
-    def check_complete(self) -> bool:
-        if None not in [self.cc, self.pid, self.surname, self.designation, self.amount]:
-            return True
-        return False
+    def is_complete(self) -> bool:
+        """Checks to see whether all fields of the Pledge object are filled."""
+        return None not in [self.cc, self.pid, self.surname, self.designation, self.amount]
 
 
-def find_last(elts=[], element=None) -> int:
+def find_last(elts=None, element=None) -> int:
     """Returns the index of the last time the element is found in the given list if present and -1 otherwise."""
+    if elts is None:
+        elts = []
     if element in elts:
-        return max(i for i, item in enumerate(elts) if item==element)
+        return max(i for i, item in enumerate(elts) if item == element)
     return -1
 
 
-def find_nth(elts=[], element=None, n=1) -> int:
+def find_nth(elts=None, element=None, n=1) -> int:
     """Returns the index of the nth time the element is found in the given list if present and -1 otherwise."""
+    if elts is None:
+        elts = []
     counter = 0
     index = 0
     for x in elts:
@@ -55,7 +58,7 @@ def main():
         p = Pledge()
         pledges.append(p)
 
-    out = ''
+    out_str = ''
 
     # for t in text:
     #     print(t)
@@ -71,9 +74,11 @@ def main():
             amt_counter += 1
         curr_index += 1
     exit()
+
     for x in range(pledge_count):
         print(text[find_nth(text, "Total Amount:", x+1)+3])
         print()
+
     # counter = 0
     # pledge = {'CC': '', 'Designation': '', 'Amount': '', 'PID': '', 'Surname': ''}
 
@@ -114,23 +119,29 @@ def main():
     if pledge_sum != total_amt:
         print(f"Incorrect total amount; Expected {'${:,.2f}'.format(total_amt)}, got {'${:,.2f}'.format(pledge_sum)}")
     else:
-        print(f"Total Amount: {'${:,.2f}'.format(total_amt)}")
+        print(f"Total amount: {'${:,.2f}'.format(total_amt)}")
 
-    pledge_list_count = len(pledges)
+    pledge_list_count = len([p for p in pledges if p.is_complete()])
     if pledge_list_count != pledge_count:
         print(f"Incorrect pledge count; Expected {pledge_count}, got {pledge_list_count}")
     else:
-        print(f"Pledge Count: {pledge_count}")
+        print(f"Pledge count: {pledge_count}")
 
     # old below
     # for p in pledges:
     #     out_line = ','.join([p["PID"], p["Surname"], p["Designation"], p["Amount"], p["CC"]])
     #     print(out_line)
-    #     out += out_line + '\n'
+    #     out_str += out_line + '\n'
 
     # print('\n' + str(len(pledges)) + ' total pledges.\n')
 
-    subprocess.run("pbcopy", universal_newlines=True, input=out)
+    # new below
+    for p in pledges:
+        out_line = ','.join([str(p.pid), p.surname, p.designation, str(p.amount), p.cc])
+        print(out_line)
+        out_str += out_line + '\n'
+
+    subprocess.run("pbcopy", universal_newlines=True, input=out_str)
     print('Lines copied to keyboard!')
 
 
