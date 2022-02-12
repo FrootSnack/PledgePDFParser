@@ -1,10 +1,6 @@
-from typing import List
-
-import regex as re
-import textract
 import subprocess
-
-# Implemented: Amount, total $, pledge count, CC y/n, PID, surname, index, designation(s)
+import textract
+from typing import List
 
 
 class Pledge:
@@ -122,7 +118,6 @@ def main():
         print(f"Incorrect pledge count; Expected {pledge_count}, got {pledge_list_count}")
     else:
         print(f"Pledge count: {pledge_count}")
-
 
     for p in pledges:
         out_line = ','.join([str(p.pid), p.surname, '/'.join(p.designation), str(p.amount), p.cc])
