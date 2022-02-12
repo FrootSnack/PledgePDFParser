@@ -3,38 +3,39 @@ import textract
 import subprocess
 
 
-# TODO: Yow and Carmichael not included in temp.pdf file; figure out why! Consider refining
-#  data collection to be more precise.
-
 # Tsai got CC & designation overwritten with info from Yow.
 # Campbell and Castro have no changes from Carmichael.
 
 class Pledge:
     def __init__(self):
-        self.cc = None
-        self.pid = None
-        self.surname = None
-        self.designation = None
-        self.amount = None
+        # 'X' if the pledge was on a credit card and ' ' if it was not.
+        self.cc: str = ''
+        # An integer representation of the prospect's PID.
+        self.pid: int = -1
+        # The prospect's surname.
+        self.surname: str = ''
+        # The designation or designations for the pledge.
+        self.designation: str = ''
+        # A float representation of the pledge amount.
+        self.amount: float = -1.0
+        # The index in the list of text rows that marks the start of the pledge information.
+        self.index: int = -1
 
     def is_complete(self) -> bool:
         """Checks to see whether all fields of the Pledge object are filled."""
-        return None not in [self.cc, self.pid, self.surname, self.designation, self.amount]
+        return '' not in [self.cc, self.surname, self.designation] and -1 not in [self.pid, int(self.amount),
+                                                                                  self.index]
 
 
-def find_last(elts=None, element=None) -> int:
+def find_last(elts, element) -> int:
     """Returns the index of the last time the element is found in the given list if present and -1 otherwise."""
-    if elts is None:
-        elts = []
     if element in elts:
         return max(i for i, item in enumerate(elts) if item == element)
     return -1
 
 
-def find_nth(elts=None, element=None, n=1) -> int:
+def find_nth(elts, element, n) -> int:
     """Returns the index of the nth time the element is found in the given list if present and -1 otherwise."""
-    if elts is None:
-        elts = []
     counter = 0
     index = 0
     for x in elts:
@@ -47,11 +48,13 @@ def find_nth(elts=None, element=None, n=1) -> int:
 
 
 def main():
-    text = textract.process('/Users/nolan/Downloads/temp2.pdf').decode('utf-8').split('\n')
+    print("Started script...")
+    text = textract.process('C:\\Users\\nolan\\PycharmProjects\\PledgePDFParser\\temp.pdf').decode('utf-8').split('\n')
     text = [line.strip() for line in text if len(line)]
+    print("Finished reading pdf...")
 
-    total_amt = float(''.join([i for i in text[find_last(text, "Total Amount:")+1] if i not in ['$', ',']]))
-    pledge_count = int(text[text.index("TOTAL PLEDGES:")+1])
+    total_amt = float(''.join([i for i in text[find_last(text, "Total Amount:") + 1] if i not in ['$', ',']]))
+    pledge_count = int(text[text.index("TOTAL PLEDGES:") + 1])
 
     pledges = []
     for x in range(pledge_count):
@@ -60,15 +63,18 @@ def main():
 
     out_str = ''
 
-    # for t in text:
-    #     print(t)
-    # exit()
+    for t in text:
+        print(t)
+    exit()
+
+
 
     # new loop
     amt_counter = 0
     curr_index = 0
     for line in text:
-        if amt_counter < pledge_count and line[0] == '$' and text[curr_index - 1][0] == '$' and text[curr_index - 2][0] == '$':
+        if amt_counter < pledge_count and line[0] == '$' and text[curr_index - 1][0] == '$' and text[curr_index - 2][
+            0] == '$':
             pledges[amt_counter].amount = float(''.join([i for i in line if i not in ['$', ',']]))
             print(pledges[amt_counter].amount)
             amt_counter += 1
@@ -76,7 +82,7 @@ def main():
     exit()
 
     for x in range(pledge_count):
-        print(text[find_nth(text, "Total Amount:", x+1)+3])
+        print(text[find_nth(text, "Total Amount:", x + 1) + 3])
         print()
 
     # counter = 0
