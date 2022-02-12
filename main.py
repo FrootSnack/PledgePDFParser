@@ -75,10 +75,6 @@ def main():
     text = [line.strip() for line in text if len(line)]
     print("Finished reading pdf...")
 
-    # for t in text:
-    #     print(t)
-    # exit()
-
     total_amt = float(''.join([i for i in text[find_last(text, "Total Amount:") + 1] if i not in ['$', ',']]))
     pledge_count = int(text[text.index("TOTAL PLEDGES:") + 1])
 
@@ -90,9 +86,6 @@ def main():
 
     out_str = ""
 
-
-
-    # new loop
     amt_counter = 0
     id_counter = 0
     curr_index = 0
@@ -101,7 +94,6 @@ def main():
         if amt_counter<pledge_count and curr_index>=2 and \
                 all(x=='$' for x in [line[0],text[curr_index-1][0],text[curr_index-2][0]]):
             pledges[amt_counter].amount = float(''.join([i for i in line if i not in ['$', ',']]))
-            print(pledges[amt_counter].amount)
             amt_counter += 1
         elif id_counter<pledge_count and len(line.split('     ')) == 3:
             pledges[id_counter].pid = line.split('     ')[0]
@@ -119,45 +111,6 @@ def main():
             pledges[find_pledge_by_index(pledges, len(text), curr_index)].add_designation(des)
         curr_index += 1
 
-
-
-
-    # counter = 0
-    # pledge = {'CC': '', 'Designation': '', 'Amount': '', 'PID': '', 'Surname': ''}
-
-    # old below
-    # for line in text:
-    #     # debugging lines
-    #     print(line)
-    #     continue
-    #     print(pledge)
-    #
-    #     if '' not in pledge.values():
-    #         pledges.append(pledge)
-    #         pledge = {'CC': '', 'Designation': '', 'Amount': '', 'PID': '', 'Surname': ''}
-    #
-    #     if pledge['PID'] == '' and pledge['Surname'] == '' and len(line.split('     ')):
-    #         reg_pid = re.sub("[^0-9]", "", line.split('     ')[0])
-    #         if len(reg_pid) == 9 and reg_pid[0] == '7':
-    #             pledge['PID'] = reg_pid
-    #             print(line)
-    #             pledge['Surname'] = line.split('     ')[1].split(',')[0]
-    #             print(pledge['PID'])
-    #             print(pledge['Surname'])
-    #     elif pledge['Amount'] == '' and line[0] == '$' and text[counter - 1][0] == '$' and text[counter - 2][0] == '$':
-    #         pledge['Amount'] = line
-    #         print(pledge['Amount'])
-    #     elif pledge['CC'] == '' and line == "Pledge Type:":
-    #         pledge['CC'] = 'X' if text[counter + 3] == "Credit Card" else ' '
-    #         print(pledge['CC'])
-    #     elif pledge['Designation'] == '' and line == "Designation Name":
-    #         pledge['Designation'] = text[counter + 1]
-    #         if any(x not in pledge['Designation'] for x in ['(', ')', '*']):
-    #             pledge['Designation'] += text[counter + 2]
-    #             print(pledge['Designation'])
-    #     counter += 1
-
-    # new below
     pledge_sum = sum([p.amount for p in pledges])
     if pledge_sum != total_amt:
         print(f"Incorrect total amount; Expected {'${:,.2f}'.format(total_amt)}, got {'${:,.2f}'.format(pledge_sum)}")
@@ -170,15 +123,7 @@ def main():
     else:
         print(f"Pledge count: {pledge_count}")
 
-    # old below
-    # for p in pledges:
-    #     out_line = ','.join([p["PID"], p["Surname"], p["Designation"], p["Amount"], p["CC"]])
-    #     print(out_line)
-    #     out_str += out_line + '\n'
 
-    # print('\n' + str(len(pledges)) + ' total pledges.\n')
-
-    # new below
     for p in pledges:
         out_line = ','.join([str(p.pid), p.surname, '/'.join(p.designation), str(p.amount), p.cc])
         print(out_line)
