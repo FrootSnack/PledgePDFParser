@@ -98,25 +98,33 @@ def main():
     out_str = ""
 
     pledges = []
-    # initialize pledges list with empty Pledge objects
+    # initialize pledges list with Pledge objects, find PID and surname, and generate identifying
+    # indices for each Pledge object.
     for x in range(pledge_count):
         p = Pledge()
+        index = find_nth_containing(text, '     ', x+1)
+        index_line = text[index]
+        p.index = index
+        p.pid = index_line.split('     ')[0]
+        p.surname = index_line.split('     ')[1].split(',')[0]
         pledges.append(p)
+    # id_counter = 0
+    #
+    # for x in range(len(text)):
+    #     line = text[x]
+    #     if id_counter<pledge_count and len(line.split('     ')) == 3:
+    #         pledges[id_counter].pid = line.split('     ')[0]
+    #         pledges[id_counter].surname = line.split('     ')[1].split(',')[0]
+    #         pledges[id_counter].index = x
+    #         id_counter += 1
 
-    id_counter = 0
-    # find PID and surname and generate identifying indices for each Pledge object
-    for x in range(len(text)):
-        line = text[x]
-        if id_counter<pledge_count and len(line.split('     ')) == 3:
-            pledges[id_counter].pid = line.split('     ')[0]
-            pledges[id_counter].surname = line.split('     ')[1].split(',')[0]
-            pledges[id_counter].index = x
-            id_counter += 1
-
-    # loop through all Pledge objects and limit the search of each parameter to an indexed scope
+    # loop through all Pledge objects
     for x in range(pledge_count):
         # loop through all lines included in the following range: Pledge.index <= index < NextPledge.index
-        for y in range(pledges[x].index, pledges[x+1].index):
+        upper_index = pledges[x+1].index if x<pledge_count-2 else len(text)-1
+        print(upper_index)
+        print(x)
+        for y in range(pledges[x].index, upper_index):
             line = text[y]
             # find pledge type in scope
             if line == "Pledge Type:":
@@ -128,7 +136,7 @@ def main():
                     des += text[y+1]
                 pledges[x].add_designation(des)
             # find amount in scope
-            elif x>=2 and all(x=='$' for x in [line[0],text[y-1][0],text[y-2][0]]):
+            elif x>=2 and all(i=='$' for i in [line[0],text[y-1][0],text[y-2][0]]):
                 pledges[x].amount = float(''.join([i for i in line if i not in ['$', ',']]))
 
     pledge_sum = sum([p.amount for p in pledges])
@@ -154,5 +162,5 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
-    debug()
+    main()
+    # debug()
