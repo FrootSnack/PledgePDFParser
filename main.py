@@ -52,6 +52,19 @@ def find_nth(elts, element, n) -> int:
     return -1
 
 
+def find_nth_containing(elts, phrase, n) -> int:
+    """Returns the index of the nth term containing the given phrase if present and -1 otherwise."""
+    counter = 0
+    index = 0
+    for x in elts:
+        if phrase in x:
+            counter += 1
+        if counter == n:
+            return index
+        index += 1
+    return -1
+
+
 def find_pledge_by_index(pledges, text_len, ind) -> int:
     """Returns the list index Pledge in the provided list that matches the provided index if present and -1 otherwise"""
     if ind > text_len-1:
@@ -65,6 +78,15 @@ def find_pledge_by_index(pledges, text_len, ind) -> int:
         counter += 1
 
 
+def debug():
+    # PID, surname, and CC are 100% working.
+    # Designation and amount have some issues; this likely stems from the indexing system.
+    text = textract.process('temp.pdf').decode('utf-8').split('\n')
+    text = [line.strip() for line in text if len(line)]
+    for line in text:
+        print(line)
+
+
 def main():
     print("Started script...")
     text = textract.process('temp.pdf').decode('utf-8').split('\n')
@@ -73,39 +95,41 @@ def main():
 
     total_amt = float(''.join([i for i in text[find_last(text, "Total Amount:") + 1] if i not in ['$', ',']]))
     pledge_count = int(text[text.index("TOTAL PLEDGES:") + 1])
-
-    pledges = []
-    for x in range(pledge_count):
-        p = Pledge()
-        p.cc = "X" if text[find_nth(text, "Pledge Type:", x+1)+3] == "Credit Card" else " "
-        pledges.append(p)
-
     out_str = ""
 
-    amt_counter = 0
+    pledges = []
+    # initialize pledges list with empty Pledge objects
+    for x in range(pledge_count):
+        p = Pledge()
+        pledges.append(p)
+
     id_counter = 0
-    curr_index = 0
-    for line in text:
-        # print(line)
-        if amt_counter<pledge_count and curr_index>=2 and \
-                all(x=='$' for x in [line[0],text[curr_index-1][0],text[curr_index-2][0]]):
-            pledges[amt_counter].amount = float(''.join([i for i in line if i not in ['$', ',']]))
-            amt_counter += 1
-        elif id_counter<pledge_count and len(line.split('     ')) == 3:
+    # find PID and surname and generate identifying indices for each Pledge object
+    for x in range(len(text)):
+        line = text[x]
+        if id_counter<pledge_count and len(line.split('     ')) == 3:
             pledges[id_counter].pid = line.split('     ')[0]
             pledges[id_counter].surname = line.split('     ')[1].split(',')[0]
-            pledges[id_counter].index = curr_index
+            pledges[id_counter].index = x
             id_counter += 1
-        curr_index += 1
 
-    curr_index = 0
-    for line in text:
-        if '*' in line:
-            des = line
-            if any(x not in des for x in ['(', ')']):
-                des += text[curr_index + 1]
-            pledges[find_pledge_by_index(pledges, len(text), curr_index)].add_designation(des)
-        curr_index += 1
+    # loop through all Pledge objects and limit the search of each parameter to an indexed scope
+    for x in range(pledge_count):
+        # loop through all lines included in the following range: Pledge.index <= index < NextPledge.index
+        for y in range(pledges[x].index, pledges[x+1].index):
+            line = text[y]
+            # find pledge type in scope
+            if line == "Pledge Type:":
+                pledges[x].cc = "X" if text[y+3] == "Credit Card" else " "
+            # find designations in scope
+            elif '*' in line:
+                des = line
+                if any(x not in des for x in ['(', ')']):
+                    des += text[y+1]
+                pledges[x].add_designation(des)
+            # find amount in scope
+            elif x>=2 and all(x=='$' for x in [line[0],text[y-1][0],text[y-2][0]]):
+                pledges[x].amount = float(''.join([i for i in line if i not in ['$', ',']]))
 
     pledge_sum = sum([p.amount for p in pledges])
     if pledge_sum != total_amt:
@@ -113,7 +137,8 @@ def main():
     else:
         print(f"Total amount: {'${:,.2f}'.format(total_amt)}")
 
-    pledge_list_count = len([p for p in pledges if p.is_complete()])
+    # pledge_list_count = len([p for p in pledges if p.is_complete()])
+    pledge_list_count = len(pledges)
     if pledge_list_count != pledge_count:
         print(f"Incorrect pledge count; Expected {pledge_count}, got {pledge_list_count}")
     else:
@@ -129,4 +154,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    debug()
