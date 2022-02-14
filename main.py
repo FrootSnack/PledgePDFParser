@@ -20,10 +20,12 @@ class Pledge:
         self.pid: str = ''
         # The prospect's surname.
         self.surname: str = ''
+        # The prospect's first name. This is not printed but is used to extract other information.
+        self.name: str = ''
         # A list containing the designation or designations for the pledge.
         self.designation: List[str] = []
         # A float representation of the pledge amount.
-        self.amount: float = -1.0
+        self.amount: float = 0.0
         # The index in the list of text rows that marks the start of the pledge information.
         self.index: int = -1
         # The last index that has been used to extract data for this Pledge. Useful if other Pledge objects
@@ -37,8 +39,8 @@ class Pledge:
     # TODO: remove this method if it is not used in the final product
     def is_complete(self) -> bool:
         """Checks to see whether all fields of the Pledge object have been filled."""
-        return '' not in [self.cc, self.surname] and -1 not in [self.pid, self.amount, self.index] \
-               and len(self.designation) != 0
+        return '' not in [self.cc, self.surname] and -1 not in [self.pid, self.index] \
+               and len(self.designation) != 0 and self.amount != 0.0
 
     def add_designation(self, designation):
         """Appends the desired element to the self.designation List."""
@@ -49,8 +51,9 @@ class Pledge:
         self.cc = ''
         self.pid = ''
         self.surname = ''
+        self.name = ''
         self.designation = []
-        self.amount = -1.0
+        self.amount = 0.0
         self.index = -1
         self.last_index = -1
 
@@ -102,10 +105,10 @@ def find_pledge_by_index(pledges, text_len, ind) -> int:
         counter += 1
 
 
-def debug():
+def debug(pdf_path='temp.pdf'):
     # PID, surname, and CC are 100% working.
     # Designation and amount have some issues; this likely stems from the indexing system.
-    text = textract.process('temp.pdf').decode('utf-8').split('\n')
+    text = textract.process(pdf_path).decode('utf-8').split('\n')
     text = [line.strip() for line in text if len(line)]
     out_str = ''
     for line in text:
@@ -132,8 +135,9 @@ def main(pdf_path='temp.pdf'):
         index = find_nth_containing(text, '     ', x+1)
         index_line = text[index]
         p.index = index
-        p.pid = index_line.split('     ')[0]
-        p.surname = index_line.split('     ')[1].split(',')[0]
+        p.pid = index_line.split('     ')[0].strip()
+        p.surname = index_line.split('     ')[1].split(',')[0].strip()
+        p.name = index_line.split('     ')[1].split(',')[1].strip()
         p.last_index = index if index > p.last_index else p.last_index
         pledges.append(p)
     # id_counter = 0
@@ -149,10 +153,8 @@ def main(pdf_path='temp.pdf'):
     # loop through all Pledge objects
     for x in range(pledge_count):
         # loop through all lines included in the following range: Pledge.index <= index < NextPledge.index
-        print('\n')
         lower_index = pledges[x].index if x>0 else 0
         upper_index = pledges[x+1].index if x<pledge_count-1 else text.index("TOTAL PLEDGES:")
-        print(upper_index)
         for y in range(lower_index, upper_index):
             line = text[y]
             # find pledge type in scope
@@ -176,16 +178,41 @@ def main(pdf_path='temp.pdf'):
                 pledges[x].add_designation(des)
                 pledges[x].last_index = y if y > pledges[x].last_index else pledges[x].last_index
             # find amount in scope
-            elif y>=2 and pledges[x].amount == -1 \
+            elif y>=2 and pledges[x].amount == 0 \
                     and all(i=='$' for i in [line[0],text[y-1][0],text[y-2][0]]) and text[y-3]!='Average':
                 pledges[x].amount = float(''.join([i for i in line if i not in ['$', ',']]))
                 pledges[x].last_index = y if y > pledges[x].last_index else pledges[x].last_index
-        # If the current Pledge object does not have a designation, take the last designation from the previous object.
+        # If the current Pledge object does not have a designation, clear the last object's designation and
+        # amount in addition to this object's amount so that the appropriate designations and amounts may be
+        # filled in manually.
         if x>0 and not pledges[x].designation:
-            print(pledges[x - 1].designation)
-            pledges[x].designation.append(pledges[x-1].designation[-1])
-            pledges[x-1].designation.pop()
-            print(pledges[x].designation)
+            pledges[x].amount = 0.0
+            pledges[x-1].amount = 0.0
+            pledges[x-1].designation = []
+
+    # # Loop through unfinished Pledge objects to assign appropriate designation(s)
+    # for x in range(len(pledges)):
+    #     # Skip all objects with a non-empty designation List
+    #     if pledges[x].designation:
+    #         continue
+    #     print('\n')
+    #     print(pledges[x].surname)
+    #     lower_index = pledges[x-1].last_index if x > 0 else 0
+    #     upper_index = pledges[x+1].index if x < pledge_count - 1 else text.index("TOTAL PLEDGES:")
+    #     for y in range(lower_index, upper_index):
+    #         line = text[y]
+    #         if line == "From" and text[y+1] == pledges[x].name:
+    #             for z in range(pledges[x].index, y):
+    #                 print(text[z])
+    #                 if '*' in text[z]:
+    #                     des = text[z]
+    #                     if any(x not in des for x in ['(', ')']):
+    #                         des += text[y+1]
+    #                     if text[z-1] != "Designation Name" and '*' not in text[z-1] \
+    #                             and text[z-2]+text[z-1] not in pledges[x].designation:
+    #                         des = text[z-1] + ' ' + des
+    #                     pledges[x].add_designation(des)
+    #                     pledges[x].last_index = z if z > pledges[x].last_index else pledges[x].last_index
 
     for p in pledges:
         out_line = ','.join([str(p.pid), p.surname, '/'.join(p.designation), str(p.amount), p.cc])
@@ -212,5 +239,5 @@ def main(pdf_path='temp.pdf'):
 
 
 if __name__ == "__main__":
-    main('temp.pdf')
-    # debug()
+    main('temp3.pdf')
+    # debug('temp2.pdf')
