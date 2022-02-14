@@ -2,6 +2,10 @@ import subprocess
 import textract
 from typing import List
 
+# TODO: Solve discrepancies in amount
+# TODO: Solve discrepancies in designation
+# TODO: Check whether CC issue is fixed using other files
+
 
 class Pledge:
     def __init__(self):
@@ -17,11 +21,15 @@ class Pledge:
         self.amount: float = -1.0
         # The index in the list of text rows that marks the start of the pledge information.
         self.index: int = -1
+        # The last index that has been used to extract data for this Pledge. Useful if other Pledge objects
+        # have data before their index value.
+        self.last_index: int = -1
 
     def __str__(self):
         return f"Pledge object\nCC: {self.cc}\nSurname: {self.surname}\nPID: {self.pid}\n" \
                f"Amount: {self.amount}\nDesignation(s): {', '.join(self.designation)}\nIndex: {self.index}\n"
 
+    # TODO: remove this method if it is not used in the final product
     def is_complete(self) -> bool:
         """Checks to see whether all fields of the Pledge object are filled."""
         return '' not in [self.cc, self.surname] and -1 not in [self.pid, int(self.amount), self.index] \
@@ -83,13 +91,16 @@ def debug():
     # Designation and amount have some issues; this likely stems from the indexing system.
     text = textract.process('temp.pdf').decode('utf-8').split('\n')
     text = [line.strip() for line in text if len(line)]
+    out_str = ''
     for line in text:
-        print(line)
+        out_str += line+'\n'
+    subprocess.run("pbcopy", universal_newlines=True, input=out_str)
+    print('Lines copied to keyboard!')
 
 
-def main():
+def main(pdf_path='temp.pdf'):
     print("Started script...")
-    text = textract.process('temp.pdf').decode('utf-8').split('\n')
+    text = textract.process(pdf_path).decode('utf-8').split('\n')
     text = [line.strip() for line in text if len(line)]
     print("Finished reading pdf...")
 
@@ -98,8 +109,8 @@ def main():
     out_str = ""
 
     pledges = []
-    # initialize pledges list with Pledge objects, find PID and surname, and generate identifying
-    # indices for each Pledge object.
+    # initialize pledges list with Pledge objects, find PID and surname, and generate
+    # identifying indices for each object.
     for x in range(pledge_count):
         p = Pledge()
         index = find_nth_containing(text, '     ', x+1)
@@ -122,13 +133,13 @@ def main():
     for x in range(pledge_count):
         # loop through all lines included in the following range: Pledge.index <= index < NextPledge.index
         upper_index = pledges[x+1].index if x<pledge_count-2 else len(text)-1
-        print(upper_index)
-        print(x)
         for y in range(pledges[x].index, upper_index):
             line = text[y]
             # find pledge type in scope
-            if line == "Pledge Type:":
-                pledges[x].cc = "X" if text[y+3] == "Credit Card" else " "
+            if line == "Specified Pledge" and pledges[x].cc == '':
+                if pledges[x].surname == 'Drake':
+                    print(text[y+3]+'end')
+                pledges[x].cc = "X" if text[y+1] == "Credit Card" else " "
             # find designations in scope
             elif '*' in line:
                 des = line
@@ -136,7 +147,8 @@ def main():
                     des += text[y+1]
                 pledges[x].add_designation(des)
             # find amount in scope
-            elif x>=2 and all(i=='$' for i in [line[0],text[y-1][0],text[y-2][0]]):
+            # elif x>=2 and all(i=='$' for i in [line[0],text[y-1][0],text[y-2][0]]):
+            elif y>=2 and line[0]=='$' and text[y-1][0]=='$' and text[y-2][0]=='$' and text[y-3]!='Average':
                 pledges[x].amount = float(''.join([i for i in line if i not in ['$', ',']]))
 
     pledge_sum = sum([p.amount for p in pledges])
@@ -162,5 +174,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main('temp.pdf')
     # debug()
