@@ -2,15 +2,6 @@ import subprocess
 import textract
 from typing import List
 
-# TODO: Properly implement Pledge.last_index parameter.
-
-# TODO: Solve discrepancies in designation. Current problem is weird ordering (see Drake & Elenez).
-#  Everything else appears to be solved in the temp.pdf document.
-
-# TODO: Solve discrepancies in amount
-
-# TODO: Check whether CC issue is fixed using other files
-
 
 class Pledge:
     def __init__(self):
@@ -36,21 +27,14 @@ class Pledge:
         return f"Pledge object\nCC: {self.cc}\nSurname: {self.surname}\nPID: {self.pid}\n" \
                f"Amount: {self.amount}\nDesignation(s): {', '.join(self.designation)}\nIndex: {self.index}\n"
 
-    # TODO: remove this method if it is not used in the final product
     def is_complete(self) -> bool:
         """Checks to see whether all fields of the Pledge object have been filled."""
         return '' not in [self.cc, self.surname] and -1 not in [self.pid, self.index] \
-               and len(self.designation) != 0 and self.amount != 0.0
+               and len(self.designation) != 0
 
     def add_designation(self, designation):
         """Appends the desired element to the self.designation List."""
         self.designation.append(designation)
-
-    def clear(self):
-        """Marks the record as being incomplete for manual adjustment."""
-        self.cc = '?'
-        self.designation = ['?']
-        self.amount = '?'
 
 
 def find_last(elts, element) -> int:
@@ -84,20 +68,6 @@ def find_nth_containing(elts, phrase, n) -> int:
             return index
         index += 1
     return -1
-
-
-# TODO: remove this function if it isn't used in the finished product
-def find_pledge_by_index(pledges, text_len, ind) -> int:
-    """Returns the list index Pledge in the provided list that matches the provided index if present and -1 otherwise"""
-    if ind > text_len-1:
-        return -1
-    counter = 0
-    for p in pledges:
-        if counter == len(pledges)-1:
-            return counter
-        if p.index <= ind < pledges[counter+1].index:
-            return counter
-        counter += 1
 
 
 def debug(pdf_path='temp.pdf'):
@@ -135,15 +105,6 @@ def main(pdf_path='temp.pdf'):
         p.name = index_line.split('     ')[1].split(',')[1].strip()
         p.last_index = index if index > p.last_index else p.last_index
         pledges.append(p)
-    # id_counter = 0
-    #
-    # for x in range(len(text)):
-    #     line = text[x]
-    #     if id_counter<pledge_count and len(line.split('     ')) == 3:
-    #         pledges[id_counter].pid = line.split('     ')[0]
-    #         pledges[id_counter].surname = line.split('     ')[1].split(',')[0]
-    #         pledges[id_counter].index = x
-    #         id_counter += 1
 
     # loop through all Pledge objects
     for x in range(pledge_count):
@@ -184,30 +145,6 @@ def main(pdf_path='temp.pdf'):
             pledges[x].amount = 0.0
             pledges[x-1].amount = 0.0
             pledges[x-1].designation = []
-
-    # # Loop through unfinished Pledge objects to assign appropriate designation(s)
-    # for x in range(len(pledges)):
-    #     # Skip all objects with a non-empty designation List
-    #     if pledges[x].designation:
-    #         continue
-    #     print('\n')
-    #     print(pledges[x].surname)
-    #     lower_index = pledges[x-1].last_index if x > 0 else 0
-    #     upper_index = pledges[x+1].index if x < pledge_count - 1 else text.index("TOTAL PLEDGES:")
-    #     for y in range(lower_index, upper_index):
-    #         line = text[y]
-    #         if line == "From" and text[y+1] == pledges[x].name:
-    #             for z in range(pledges[x].index, y):
-    #                 print(text[z])
-    #                 if '*' in text[z]:
-    #                     des = text[z]
-    #                     if any(x not in des for x in ['(', ')']):
-    #                         des += text[y+1]
-    #                     if text[z-1] != "Designation Name" and '*' not in text[z-1] \
-    #                             and text[z-2]+text[z-1] not in pledges[x].designation:
-    #                         des = text[z-1] + ' ' + des
-    #                     pledges[x].add_designation(des)
-    #                     pledges[x].last_index = z if z > pledges[x].last_index else pledges[x].last_index
 
     for p in pledges:
         out_line = ','.join([str(p.pid), p.surname, '?', '?', '?'])
