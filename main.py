@@ -2,8 +2,13 @@ import subprocess
 import textract
 from typing import List
 
+# TODO: Properly implement Pledge.last_index parameter.
+
+# TODO: Solve discrepancies in designation. Current problem is weird ordering (see Drake & Elenez).
+#  Everything else appears to be solved in the temp.pdf document.
+
 # TODO: Solve discrepancies in amount
-# TODO: Solve discrepancies in designation
+
 # TODO: Check whether CC issue is fixed using other files
 
 
@@ -15,7 +20,7 @@ class Pledge:
         self.pid: str = ''
         # The prospect's surname.
         self.surname: str = ''
-        # A list of the designation or designations for the pledge.
+        # A list containing the designation or designations for the pledge.
         self.designation: List[str] = []
         # A float representation of the pledge amount.
         self.amount: float = -1.0
@@ -31,13 +36,23 @@ class Pledge:
 
     # TODO: remove this method if it is not used in the final product
     def is_complete(self) -> bool:
-        """Checks to see whether all fields of the Pledge object are filled."""
-        return '' not in [self.cc, self.surname] and -1 not in [self.pid, int(self.amount), self.index] \
+        """Checks to see whether all fields of the Pledge object have been filled."""
+        return '' not in [self.cc, self.surname] and -1 not in [self.pid, self.amount, self.index] \
                and len(self.designation) != 0
 
     def add_designation(self, designation):
         """Appends the desired element to the self.designation List."""
         self.designation.append(designation)
+
+    def clear_all(self):
+        """Resets all data fields to their default value."""
+        self.cc = ''
+        self.pid = ''
+        self.surname = ''
+        self.designation = []
+        self.amount = -1.0
+        self.index = -1
+        self.last_index = -1
 
 
 def find_last(elts, element) -> int:
@@ -73,6 +88,7 @@ def find_nth_containing(elts, phrase, n) -> int:
     return -1
 
 
+# TODO: remove this function if it isn't used in the finished product
 def find_pledge_by_index(pledges, text_len, ind) -> int:
     """Returns the list index Pledge in the provided list that matches the provided index if present and -1 otherwise"""
     if ind > text_len-1:
@@ -102,7 +118,7 @@ def main(pdf_path='temp.pdf'):
     print("Started script...")
     text = textract.process(pdf_path).decode('utf-8').split('\n')
     text = [line.strip() for line in text if len(line)]
-    print("Finished reading pdf...")
+    print("Finished reading pdf...\n")
 
     total_amt = float(''.join([i for i in text[find_last(text, "Total Amount:") + 1] if i not in ['$', ',']]))
     pledge_count = int(text[text.index("TOTAL PLEDGES:") + 1])
@@ -118,6 +134,7 @@ def main(pdf_path='temp.pdf'):
         p.index = index
         p.pid = index_line.split('     ')[0]
         p.surname = index_line.split('     ')[1].split(',')[0]
+        p.last_index = index if index > p.last_index else p.last_index
         pledges.append(p)
     # id_counter = 0
     #
@@ -132,42 +149,63 @@ def main(pdf_path='temp.pdf'):
     # loop through all Pledge objects
     for x in range(pledge_count):
         # loop through all lines included in the following range: Pledge.index <= index < NextPledge.index
-        upper_index = pledges[x+1].index if x<pledge_count-2 else len(text)-1
-        for y in range(pledges[x].index, upper_index):
+        print('\n')
+        lower_index = pledges[x].index if x>0 else 0
+        upper_index = pledges[x+1].index if x<pledge_count-1 else text.index("TOTAL PLEDGES:")
+        print(upper_index)
+        for y in range(lower_index, upper_index):
             line = text[y]
             # find pledge type in scope
             if line == "Specified Pledge" and pledges[x].cc == '':
-                if pledges[x].surname == 'Drake':
-                    print(text[y+3]+'end')
-                pledges[x].cc = "X" if text[y+1] == "Credit Card" else " "
-            # find designations in scope
+                pledge_type = text[y+1]
+                if pledge_type == "Credit Card":
+                    pledges[x].cc = "X"
+                elif pledge_type == "Check":
+                    pledges[x].cc = " "
+                else:
+                    pledges[x].cc = "?"
+                pledges[x].last_index = y if y > pledges[x].last_index else pledges[x].last_index
+            # find designation(s) in scope
             elif '*' in line:
                 des = line
                 if any(x not in des for x in ['(', ')']):
                     des += text[y+1]
+                if text[y-1] != "Designation Name" and '*' not in text[y-1] \
+                        and text[y-2]+text[y-1] not in pledges[x].designation:
+                    des = text[y-1] + ' ' + des
                 pledges[x].add_designation(des)
+                pledges[x].last_index = y if y > pledges[x].last_index else pledges[x].last_index
             # find amount in scope
-            # elif x>=2 and all(i=='$' for i in [line[0],text[y-1][0],text[y-2][0]]):
-            elif y>=2 and line[0]=='$' and text[y-1][0]=='$' and text[y-2][0]=='$' and text[y-3]!='Average':
+            elif y>=2 and pledges[x].amount == -1 \
+                    and all(i=='$' for i in [line[0],text[y-1][0],text[y-2][0]]) and text[y-3]!='Average':
                 pledges[x].amount = float(''.join([i for i in line if i not in ['$', ',']]))
-
-    pledge_sum = sum([p.amount for p in pledges])
-    if pledge_sum != total_amt:
-        print(f"Incorrect total amount; Expected {'${:,.2f}'.format(total_amt)}, got {'${:,.2f}'.format(pledge_sum)}")
-    else:
-        print(f"Total amount: {'${:,.2f}'.format(total_amt)}")
-
-    # pledge_list_count = len([p for p in pledges if p.is_complete()])
-    pledge_list_count = len(pledges)
-    if pledge_list_count != pledge_count:
-        print(f"Incorrect pledge count; Expected {pledge_count}, got {pledge_list_count}")
-    else:
-        print(f"Pledge count: {pledge_count}")
+                pledges[x].last_index = y if y > pledges[x].last_index else pledges[x].last_index
+        # If the current Pledge object does not have a designation, take the last designation from the previous object.
+        if x>0 and not pledges[x].designation:
+            print(pledges[x - 1].designation)
+            pledges[x].designation.append(pledges[x-1].designation[-1])
+            pledges[x-1].designation.pop()
+            print(pledges[x].designation)
 
     for p in pledges:
         out_line = ','.join([str(p.pid), p.surname, '/'.join(p.designation), str(p.amount), p.cc])
         print(out_line)
         out_str += out_line + '\n'
+
+    # Printing some diagnostic information to ensure data is correct
+    pledge_sum = sum([p.amount for p in pledges])
+    if pledge_sum != total_amt:
+        print(
+            f"\nIncorrect total amount; Expected {'${:,.2f}'.format(total_amt)}, got {'${:,.2f}'.format(pledge_sum)}")
+    else:
+        print(f"\nTotal amount: {'${:,.2f}'.format(total_amt)}")
+
+    # pledge_list_count = len([p for p in pledges if p.is_complete()])
+    pledge_list_count = len(pledges)
+    if pledge_list_count != pledge_count:
+        print(f"Incorrect pledge count; Expected {pledge_count}, got {pledge_list_count}\n")
+    else:
+        print(f"Pledge count: {pledge_count}\n")
 
     subprocess.run("pbcopy", universal_newlines=True, input=out_str)
     print('Lines copied to keyboard!')
