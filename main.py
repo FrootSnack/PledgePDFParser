@@ -162,5 +162,5 @@ def main(pdf_path='temp.pdf'):
 
 
 if __name__ == "__main__":
-    main('temp.pdf')
-    # debug('temp2.pdf')
+    # main('temp.pdf')
+    debug('temp4.pdf')
