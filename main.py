@@ -46,16 +46,11 @@ class Pledge:
         """Appends the desired element to the self.designation List."""
         self.designation.append(designation)
 
-    def clear_all(self):
-        """Resets all data fields to their default value."""
-        self.cc = ''
-        self.pid = ''
-        self.surname = ''
-        self.name = ''
-        self.designation = []
-        self.amount = 0.0
-        self.index = -1
-        self.last_index = -1
+    def clear(self):
+        """Marks the record as being incomplete for manual adjustment."""
+        self.cc = '?'
+        self.designation = ['?']
+        self.amount = '?'
 
 
 def find_last(elts, element) -> int:
@@ -215,7 +210,9 @@ def main(pdf_path='temp.pdf'):
     #                     pledges[x].last_index = z if z > pledges[x].last_index else pledges[x].last_index
 
     for p in pledges:
-        out_line = ','.join([str(p.pid), p.surname, '/'.join(p.designation), str(p.amount), p.cc])
+        out_line = ','.join([str(p.pid), p.surname, '?', '?', '?'])
+        if p.is_complete():
+            out_line = ','.join([str(p.pid), p.surname, '/'.join(p.designation), str(p.amount), p.cc])
         print(out_line)
         out_str += out_line + '\n'
 
@@ -227,7 +224,6 @@ def main(pdf_path='temp.pdf'):
     else:
         print(f"\nTotal amount: {'${:,.2f}'.format(total_amt)}")
 
-    # pledge_list_count = len([p for p in pledges if p.is_complete()])
     pledge_list_count = len(pledges)
     if pledge_list_count != pledge_count:
         print(f"Incorrect pledge count; Expected {pledge_count}, got {pledge_list_count}\n")
@@ -239,5 +235,5 @@ def main(pdf_path='temp.pdf'):
 
 
 if __name__ == "__main__":
-    main('temp3.pdf')
+    main('temp.pdf')
     # debug('temp2.pdf')
