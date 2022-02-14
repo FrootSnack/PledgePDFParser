@@ -11,17 +11,12 @@ class Pledge:
         self.pid: str = ''
         # The prospect's surname.
         self.surname: str = ''
-        # The prospect's first name. This is not printed but is used to extract other information.
-        self.name: str = ''
         # A list containing the designation or designations for the pledge.
         self.designation: List[str] = []
         # A float representation of the pledge amount.
         self.amount: float = 0.0
         # The index in the list of text rows that marks the start of the pledge information.
         self.index: int = -1
-        # The last index that has been used to extract data for this Pledge. Useful if other Pledge objects
-        # have data before their index value.
-        self.last_index: int = -1
 
     def __str__(self):
         return f"Pledge object\nCC: {self.cc}\nSurname: {self.surname}\nPID: {self.pid}\n" \
@@ -102,8 +97,6 @@ def main(pdf_path='temp.pdf'):
         p.index = index
         p.pid = index_line.split('     ')[0].strip()
         p.surname = index_line.split('     ')[1].split(',')[0].strip()
-        p.name = index_line.split('     ')[1].split(',')[1].strip()
-        p.last_index = index if index > p.last_index else p.last_index
         pledges.append(p)
 
     # loop through all Pledge objects
@@ -122,7 +115,6 @@ def main(pdf_path='temp.pdf'):
                     pledges[x].cc = " "
                 else:
                     pledges[x].cc = "?"
-                pledges[x].last_index = y if y > pledges[x].last_index else pledges[x].last_index
             # find designation(s) in scope
             elif '*' in line:
                 des = line
@@ -132,12 +124,10 @@ def main(pdf_path='temp.pdf'):
                         and text[y-2]+text[y-1] not in pledges[x].designation:
                     des = text[y-1] + ' ' + des
                 pledges[x].add_designation(des)
-                pledges[x].last_index = y if y > pledges[x].last_index else pledges[x].last_index
             # find amount in scope
             elif y>=2 and pledges[x].amount == 0 \
                     and all(i=='$' for i in [line[0],text[y-1][0],text[y-2][0]]) and text[y-3]!='Average':
                 pledges[x].amount = float(''.join([i for i in line if i not in ['$', ',']]))
-                pledges[x].last_index = y if y > pledges[x].last_index else pledges[x].last_index
         # If the current Pledge object does not have a designation, clear the last object's designation and
         # amount in addition to this object's amount so that the appropriate designations and amounts may be
         # filled in manually.
