@@ -139,7 +139,7 @@ def main(pdf_path='temp.pdf'):
     for p in pledges:
         out_line = ','.join([str(p.pid), p.surname, '?', '?', '?'])
         if p.is_complete():
-            out_line = ','.join([str(p.pid), p.surname, '/'.join(p.designation), '${:,.2f}'.format(p.amount), p.cc])
+            out_line = ','.join([str(p.pid), p.surname, '/'.join(p.designation), '${:.2f}'.format(p.amount), p.cc])
         print(out_line)
         out_str += out_line + '\n'
 
