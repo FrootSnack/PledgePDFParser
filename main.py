@@ -150,8 +150,7 @@ def main(pdf_path='temp.pdf'):
     # Printing some diagnostic information to ensure data is correct
     pledge_sum = sum([p.amount for p in pledges])
     if pledge_sum != total_amt:
-        print(
-            f"\nIncorrect total amount; Expected {'${:,.2f}'.format(total_amt)}, got {'${:,.2f}'.format(pledge_sum)}")
+        print(f"\nIncorrect total amount; Expected {'${:,.2f}'.format(total_amt)}, got {'${:,.2f}'.format(pledge_sum)}")
     else:
         print(f"\nTotal amount: {'${:,.2f}'.format(total_amt)}")
 
