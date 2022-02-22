@@ -5,7 +5,7 @@ from typing import List
 
 class Pledge:
     def __init__(self):
-        # 'X' if the pledge was on a credit card and ' ' if it was not.
+        # 'X' if the pledge was on a credit card and ' ' (space character) if it was not.
         self.cc: str = ''
         # A string representation of the prospect's PID.
         self.pid: str = ''
@@ -30,6 +30,12 @@ class Pledge:
     def add_designation(self, designation):
         """Appends the desired element to the self.designation List."""
         self.designation.append(designation)
+
+    def as_line(self) -> str:
+        if self.is_complete():
+            return ','.join([str(self.pid), self.surname, '/'.join(self.designation),
+                             '${:.2f}'.format(self.amount), self.cc])
+        return ','.join([str(self.pid), self.surname, '?', '?', '?'])
 
 
 def find_last(elts, element) -> int:
@@ -100,46 +106,44 @@ def main(pdf_path='temp.pdf'):
         pledges.append(p)
 
     # loop through all Pledge objects
-    for x in range(pledge_count):
+    for index, pledge in enumerate(pledges):
         # loop through all lines included in the following range: Pledge.index <= index < NextPledge.index
-        lower_index = pledges[x].index if x>0 else 0
-        upper_index = pledges[x+1].index if x<pledge_count-1 else text.index("TOTAL PLEDGES:")
-        for y in range(lower_index, upper_index):
-            line = text[y]
+        lower_index = pledge.index if index>0 else 0
+        upper_index = pledges[index+1].index if index<pledge_count-1 else text.index("TOTAL PLEDGES:")
+        for inner_idx, line in enumerate(text[lower_index:upper_index], start=lower_index):
             # find pledge type in scope
-            if line == "Specified Pledge" and pledges[x].cc == '':
-                pledge_type = text[y+1]
+            if line == "Specified Pledge" and pledge.cc == '':
+                pledge_type = text[inner_idx+1]
                 if pledge_type == "Credit Card":
-                    pledges[x].cc = "X"
+                    pledge.cc = "X"
                 elif pledge_type == "Check":
-                    pledges[x].cc = " "
+                    pledge.cc = " "
                 else:
-                    pledges[x].cc = "?"
+                    pledge.cc = "?"
             # find designation(s) in scope
             elif '*' in line:
                 des = line
                 if any(x not in des for x in ['(', ')']):
-                    des += text[y+1]
-                if text[y-1] != "Designation Name" and '*' not in text[y-1] \
-                        and text[y-2]+text[y-1] not in pledges[x].designation:
-                    des = text[y-1] + ' ' + des
-                pledges[x].add_designation(des)
+                    des += text[inner_idx+1]
+                if text[inner_idx-1] != "Designation Name" and '*' not in text[inner_idx-1] \
+                        and text[inner_idx-2]+text[inner_idx-1] not in pledges[x].designation:
+                    des = text[inner_idx-1] + ' ' + des
+                pledge.add_designation(des)
             # find amount in scope
-            elif y>=2 and pledges[x].amount == 0 \
-                    and all(i=='$' for i in [line[0],text[y-1][0],text[y-2][0]]) and text[y-3]!='Average':
-                pledges[x].amount = float(''.join([i for i in line if i not in ['$', ',']]))
+            elif inner_idx>=2 and pledge.amount == 0 \
+                    and all(i=='$' for i in [line[0],text[inner_idx-1][0],text[inner_idx-2][0]]) \
+                    and text[inner_idx-3]!='Average':
+                pledge.amount = float(''.join([i for i in line if i not in ['$', ',']]))
         # If the current Pledge object does not have a designation, clear the last object's designation and
         # amount in addition to this object's amount so that the appropriate designations and amounts may be
         # filled in manually.
-        if x>0 and not pledges[x].designation:
-            pledges[x].amount = 0.0
-            pledges[x-1].amount = 0.0
-            pledges[x-1].designation = []
+        if index and not pledge.designation:
+            pledge.amount = 0.0
+            pledges[index-1].amount = 0.0
+            pledges[index-1].designation = []
 
     for p in pledges:
-        out_line = ','.join([str(p.pid), p.surname, '?', '?', '?'])
-        if p.is_complete():
-            out_line = ','.join([str(p.pid), p.surname, '/'.join(p.designation), '${:.2f}'.format(p.amount), p.cc])
+        out_line = p.as_line()
         print(out_line)
         out_str += out_line + '\n'
 
@@ -162,5 +166,5 @@ def main(pdf_path='temp.pdf'):
 
 
 if __name__ == "__main__":
-    main('/Users/nolan/Downloads/2-17_pledges.pdf')
+    main('/Users/nolan/Downloads/2-21_pledges.pdf')
     # debug('temp4.pdf')
