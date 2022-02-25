@@ -25,7 +25,7 @@ class Pledge:
     def is_complete(self) -> bool:
         """Checks to see whether all fields of the Pledge object have been filled."""
         return '' not in [self.cc, self.surname] and -1 not in [self.pid, self.index] \
-               and len(self.designation) != 0
+               and 0 not in [len(self.designation), self.amount]
 
     def add_designation(self, designation):
         """Appends the desired element to the self.designation List."""
