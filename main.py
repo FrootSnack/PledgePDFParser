@@ -126,7 +126,7 @@ def main(pdf_path='temp.pdf'):
                 if any(x not in des for x in ['(', ')']):
                     des += text[inner_idx+1]
                 if text[inner_idx-1] != "Designation Name" and '*' not in text[inner_idx-1] \
-                        and text[inner_idx-2]+text[inner_idx-1] not in pledges[x].designation:
+                        and text[inner_idx-2]+text[inner_idx-1] not in pledge.designation:
                     des = text[inner_idx-1] + ' ' + des
                 pledge.add_designation(des)
             # find amount in scope
@@ -165,5 +165,5 @@ def main(pdf_path='temp.pdf'):
 
 
 if __name__ == "__main__":
-    main('/Users/nolan/Downloads/2-21_pledges.pdf')
+    main('/Users/nolan/Downloads/2-24_pledges.pdf')
     # debug('temp4.pdf')
