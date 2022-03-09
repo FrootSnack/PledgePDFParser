@@ -1,3 +1,4 @@
+import os
 import subprocess
 import textract
 from typing import List
@@ -83,11 +84,17 @@ def debug(pdf_path='temp.pdf'):
     print('Lines copied to keyboard!')
 
 
-def main(pdf_path='temp.pdf'):
-    print("Started script...")
+def main():
+    pdf_path = input("Please enter the path to the PDF, or enter 'stop' to end the program.\n>")
+    while pdf_path != 'stop' and not os.path.isfile(pdf_path):
+        pdf_path = input("This path does not exist! Please enter the path to the PDF, "
+                         "or enter 'stop' to end the program.\n>")
+
+    if pdf_path=='stop':
+        exit()
+
     text = textract.process(pdf_path).decode('utf-8').split('\n')
     text = [line.strip() for line in text if len(line)]
-    print("Finished reading pdf...\n")
 
     total_amt = float(''.join([i for i in text[find_last(text, "Total Amount:") + 1] if i not in ['$', ',']]))
     pledge_count = int(text[text.index("TOTAL PLEDGES:") + 1])
@@ -165,5 +172,5 @@ def main(pdf_path='temp.pdf'):
 
 
 if __name__ == "__main__":
-    main('/Users/nolan/Downloads/2-24_pledges.pdf')
+    main()
     # debug('temp4.pdf')
