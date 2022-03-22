@@ -6,7 +6,7 @@ from typing import List
 
 class Pledge:
     def __init__(self):
-        # 'X' if the pledge was on a credit card and ' ' (space character) if it was not.
+        # 'X' if the pledge was on a credit card and a space character (' ') if it was not.
         self.cc: str = ''
         # A string representation of the prospect's PID.
         self.pid: str = ''
@@ -20,8 +20,10 @@ class Pledge:
         self.index: int = -1
 
     def __str__(self):
-        return f"Pledge object\nCC: {self.cc}\nSurname: {self.surname}\nPID: {self.pid}\n" \
-               f"Amount: {self.amount}\nDesignation(s): {', '.join(self.designation)}\nIndex: {self.index}\n"
+        if self.is_complete():
+            return ','.join([str(self.pid), self.surname, '/'.join(self.designation),
+                             '${:.2f}'.format(self.amount), self.cc])
+        return ','.join([str(self.pid), self.surname, '?', '?', '?'])
 
     def is_complete(self) -> bool:
         """Checks to see whether all fields of the Pledge object have been filled."""
@@ -31,12 +33,6 @@ class Pledge:
     def add_designation(self, designation):
         """Appends the desired element to the self.designation List."""
         self.designation.append(designation)
-
-    def as_line(self) -> str:
-        if self.is_complete():
-            return ','.join([str(self.pid), self.surname, '/'.join(self.designation),
-                             '${:.2f}'.format(self.amount), self.cc])
-        return ','.join([str(self.pid), self.surname, '?', '?', '?'])
 
 
 def find_last(elts, element) -> int:
@@ -72,33 +68,21 @@ def find_nth_containing(elts, phrase, n) -> int:
     return -1
 
 
-def debug(pdf_path='temp.pdf'):
-    # PID, surname, and CC are 100% working.
-    # Designation and amount have some issues; this likely stems from the indexing system.
-    text = textract.process(pdf_path).decode('utf-8').split('\n')
-    text = [line.strip() for line in text if len(line)]
-    out_str = ''
-    for line in text:
-        out_str += line+'\n'
-    subprocess.run("pbcopy", universal_newlines=True, input=out_str)
-    print('Lines copied to keyboard!')
-
-
 def main():
     pdf_path = input("Please enter the path to the PDF, or enter 'stop' to end the program.\n>")
-    while pdf_path != 'stop' and not os.path.isfile(pdf_path):
-        pdf_path = input("This path does not exist! Please enter the path to the PDF, "
+
+    while pdf_path.lower() != 'stop' and not os.path.isfile(pdf_path):
+        pdf_path = input("The given path does not exist! Please enter the path to the PDF, "
                          "or enter 'stop' to end the program.\n>")
 
-    if pdf_path=='stop':
+    if pdf_path.lower() == 'stop':
         exit()
 
-    text = textract.process(pdf_path).decode('utf-8').split('\n')
-    text = [line.strip() for line in text if len(line)]
+    text = [line.strip() for line in textract.process(pdf_path).decode('utf-8').split('\n') if len(line)]
 
     total_amt = float(''.join([i for i in text[find_last(text, "Total Amount:") + 1] if i not in ['$', ',']]))
-    pledge_count = int(text[text.index("TOTAL PLEDGES:") + 1])
-    out_str = ""
+    pledge_count_index = text.index("TOTAL PLEDGES:")
+    pledge_count = int(text[pledge_count_index+1])
 
     pledges = []
     # initialize pledges list with Pledge objects, find PID and surname, and generate
@@ -116,7 +100,7 @@ def main():
     for index, pledge in enumerate(pledges):
         # loop through all lines included in the following range: Pledge.index <= index < NextPledge.index
         lower_index = pledge.index if index>0 else 0
-        upper_index = pledges[index+1].index if index<pledge_count-1 else text.index("TOTAL PLEDGES:")
+        upper_index = pledges[index+1].index if index<pledge_count-1 else pledge_count_index
         for inner_idx, line in enumerate(text[lower_index:upper_index], start=lower_index):
             # find pledge type in scope
             if line == "Specified Pledge" and pledge.cc == '':
@@ -149,13 +133,11 @@ def main():
             pledges[index-1].amount = 0.0
             pledges[index-1].designation = []
 
-    for p in pledges:
-        out_line = p.as_line()
-        print(out_line)
-        out_str += out_line + '\n'
+    pledge_sum = sum([p.amount for p in pledges])
+    out_str = '\n'.join([str(p) for p in pledges])
+    print(out_str)
 
     # Printing some diagnostic information to ensure data is correct
-    pledge_sum = sum([p.amount for p in pledges])
     if pledge_sum != total_amt:
         print(f"\nIncorrect total amount; Expected {'${:,.2f}'.format(total_amt)}, got {'${:,.2f}'.format(pledge_sum)}")
     else:
@@ -173,4 +155,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # debug('temp4.pdf')
