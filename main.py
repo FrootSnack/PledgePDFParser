@@ -69,27 +69,28 @@ def find_nth_containing(elts, phrase, n) -> int:
 
 
 def main():
-    pdf_path = input("Please enter the path to the PDF, or enter 'stop' to end the program.\n>")
+    pdf_path = '/Users/nolan/Downloads/' + input("Please enter the path to the PDF, or enter 'stop' to end the "
+                                                 "program.\n>")
 
-    while pdf_path.lower() != 'stop' and not os.path.isfile(pdf_path):
-        pdf_path = input("The given path does not exist! Please enter the path to the PDF, "
-                         "or enter 'stop' to end the program.\n>")
+    while pdf_path.lower() != '/Users/nolan/Downloads/stop' and not os.path.isfile(pdf_path):
+        pdf_path = '/Users/nolan/Downloads/' + input("The given path does not exist! Please enter the path to the PDF, "
+                                                     "or enter 'stop' to end the program.\n>")
 
-    if pdf_path.lower() == 'stop':
+    if pdf_path.lower() == '/Users/nolan/Downloads/stop':
         exit()
 
-    text = [line.strip() for line in textract.process(pdf_path).decode('utf-8').split('\n') if len(line)]
+    text = [line.strip() for line in textract.process(pdf_path).decode('utf -8').split('\n') if len(line)]
 
     total_amt = float(''.join([i for i in text[find_last(text, "Total Amount:") + 1] if i not in ['$', ',']]))
     pledge_count_index = text.index("TOTAL PLEDGES:")
-    pledge_count = int(text[pledge_count_index+1])
+    pledge_count = int(text[pledge_count_index + 1])
 
     pledges = []
     # initialize pledges list with Pledge objects, find PID and surname, and generate
     # identifying indices for each object.
     for x in range(pledge_count):
         p = Pledge()
-        index = find_nth_containing(text, '     ', x+1)
+        index = find_nth_containing(text, '     ', x + 1)
         index_line = text[index]
         p.index = index
         p.pid = index_line.split('     ')[0].strip()
@@ -99,12 +100,12 @@ def main():
     # loop through all Pledge objects
     for index, pledge in enumerate(pledges):
         # loop through all lines included in the following range: Pledge.index <= index < NextPledge.index
-        lower_index = pledge.index if index>0 else 0
-        upper_index = pledges[index+1].index if index<pledge_count-1 else pledge_count_index
+        lower_index = pledge.index if index > 0 else 0
+        upper_index = pledges[index + 1].index if index < pledge_count - 1 else pledge_count_index
         for inner_idx, line in enumerate(text[lower_index:upper_index], start=lower_index):
             # find pledge type in scope
             if line == "Specified Pledge" and pledge.cc == '':
-                pledge_type = text[inner_idx+1]
+                pledge_type = text[inner_idx + 1]
                 if pledge_type == "Credit Card":
                     pledge.cc = "X"
                 elif pledge_type == "Check":
@@ -115,23 +116,23 @@ def main():
             elif '*' in line:
                 des = line
                 if any(x not in des for x in ['(', ')']):
-                    des += text[inner_idx+1]
-                if text[inner_idx-1] != "Designation Name" and '*' not in text[inner_idx-1] \
-                        and text[inner_idx-2]+text[inner_idx-1] not in pledge.designation:
-                    des = text[inner_idx-1] + ' ' + des
+                    des += text[inner_idx + 1]
+                if text[inner_idx - 1] != "Designation Name" and '*' not in text[inner_idx - 1] \
+                        and text[inner_idx - 2] + text[inner_idx - 1] not in pledge.designation:
+                    des = text[inner_idx - 1] + ' ' + des
                 pledge.add_designation(des)
             # find amount in scope
-            elif inner_idx>=2 and pledge.amount == 0 \
-                    and all(i=='$' for i in [line[0],text[inner_idx-1][0],text[inner_idx-2][0]]) \
-                    and text[inner_idx-3]!='Average':
+            elif inner_idx >= 2 and pledge.amount == 0 \
+                    and all(i == '$' for i in [line[0], text[inner_idx - 1][0], text[inner_idx - 2][0]]) \
+                    and text[inner_idx - 3] != 'Average':
                 pledge.amount = float(''.join([i for i in line if i not in ['$', ',']]))
         # If the current Pledge object does not have a designation, clear the last object's designation and
         # amount in addition to this object's amount so that the appropriate designations and amounts may be
         # filled in manually.
         if index and not pledge.designation:
             pledge.amount = 0.0
-            pledges[index-1].amount = 0.0
-            pledges[index-1].designation = []
+            pledges[index - 1].amount = 0.0
+            pledges[index - 1].designation = []
 
     pledge_sum = sum([p.amount for p in pledges])
     out_str = '\n'.join([str(p) for p in pledges])
