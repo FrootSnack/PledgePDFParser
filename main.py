@@ -70,13 +70,13 @@ def find_nth_containing(elts, phrase, n) -> int:
 
 def main():
     pdf_path = '/Users/nolan/Downloads/' + input("Please enter the path to the PDF, or enter 'stop' to end the "
-                                                 "program.\n>")
+                                                 "program.\n>") + '.pdf'
 
-    while pdf_path.lower() != '/Users/nolan/Downloads/stop' and not os.path.isfile(pdf_path):
+    while pdf_path.lower() != '/Users/nolan/Downloads/stop.pdf' and not os.path.isfile(pdf_path):
         pdf_path = '/Users/nolan/Downloads/' + input("The given path does not exist! Please enter the path to the PDF, "
-                                                     "or enter 'stop' to end the program.\n>")
+                                                     "or enter 'stop' to end the program.\n>") + '.pdf'
 
-    if pdf_path.lower() == '/Users/nolan/Downloads/stop':
+    if pdf_path.lower() == '/Users/nolan/Downloads/stop.pdf':
         exit()
 
     text = [line.strip() for line in textract.process(pdf_path).decode('utf -8').split('\n') if len(line)]
