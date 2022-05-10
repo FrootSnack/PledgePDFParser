@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 import textract
 from typing import List
 
@@ -69,15 +70,17 @@ def find_nth_containing(elts, phrase, n) -> int:
 
 
 def main():
-    pdf_path = '/Users/nolan/Downloads/' + input("Please enter the path to the PDF, or enter 'stop' to end the "
-                                                 "program.\n>") + '.pdf'
+    path = '/Users/nolan/Downloads/'
 
-    while pdf_path.lower() != '/Users/nolan/Downloads/stop.pdf' and not os.path.isfile(pdf_path):
-        pdf_path = '/Users/nolan/Downloads/' + input("The given path does not exist! Please enter the path to the PDF, "
-                                                     "or enter 'stop' to end the program.\n>") + '.pdf'
+    files = os.listdir(path)
+    paths = [os.path.join(path, basename) for basename in files]
+    pdf_path = max(paths, key=os.path.getctime)
 
-    if pdf_path.lower() == '/Users/nolan/Downloads/stop.pdf':
-        exit()
+    if len(sys.argv) > 2:
+        print("This program only accepts a single argument!")
+        quit()
+    elif len(sys.argv) == 2:
+        pdf_path = path + sys.argv[1] + '.pdf'
 
     text = [line.strip() for line in textract.process(pdf_path).decode('utf -8').split('\n') if len(line)]
 
