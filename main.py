@@ -2,71 +2,8 @@ import os
 import subprocess
 import sys
 import textract
-from typing import List
-
-
-class Pledge:
-    def __init__(self):
-        # 'X' if the pledge was on a credit card and a space character (' ') if it was not.
-        self.cc: str = ''
-        # A string representation of the prospect's PID.
-        self.pid: str = ''
-        # The prospect's surname.
-        self.surname: str = ''
-        # A list containing the designation or designations for the pledge.
-        self.designation: List[str] = []
-        # A float representation of the pledge amount.
-        self.amount: float = 0.0
-        # The index in the list of text rows that marks the start of the pledge information.
-        self.index: int = -1
-
-    def __str__(self):
-        if self.is_complete():
-            return ','.join([str(self.pid), self.surname, '/'.join(self.designation),
-                             '${:.2f}'.format(self.amount), self.cc])
-        return ','.join([str(self.pid), self.surname, '?', '?', '?'])
-
-    def is_complete(self) -> bool:
-        """Checks to see whether all fields of the Pledge object have been filled."""
-        return '' not in [self.cc, self.surname] and -1 not in [self.pid, self.index] \
-               and 0 not in [len(self.designation), self.amount]
-
-    def add_designation(self, designation):
-        """Appends the desired element to the self.designation List."""
-        self.designation.append(designation)
-
-
-def find_last(elts, element) -> int:
-    """Returns the index of the last time the element is found in the given list if present and -1 otherwise."""
-    if element in elts:
-        return max(i for i, item in enumerate(elts) if item == element)
-    return -1
-
-
-def find_nth(elts, element, n) -> int:
-    """Returns the index of the nth time the element is found in the given list if present and -1 otherwise."""
-    counter = 0
-    index = 0
-    for x in elts:
-        if x == element:
-            counter += 1
-        if counter == n:
-            return index
-        index += 1
-    return -1
-
-
-def find_nth_containing(elts, phrase, n) -> int:
-    """Returns the index of the nth term containing the given phrase if present and -1 otherwise."""
-    counter = 0
-    index = 0
-    for x in elts:
-        if phrase in x:
-            counter += 1
-        if counter == n:
-            return index
-        index += 1
-    return -1
+from resources.pledgemethods import find_last, find_nth_containing
+from resources.pledgeclass import Pledge
 
 
 def main():
