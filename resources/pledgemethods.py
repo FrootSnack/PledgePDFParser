@@ -29,3 +29,10 @@ def find_nth_containing(elts, phrase, n) -> int:
             return index
         index += 1
     return -1
+
+
+def clear_cache() -> None:
+    """Clears all files from the cache folder."""
+    import os
+    for f in os.listdir('cache'):
+        os.remove(os.path.join('cache', f))
