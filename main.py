@@ -25,7 +25,7 @@ class Pledge:
         if self.is_complete():
             return ','.join([str(self.pid), self.surname, '/'.join(self.designation),
                              '${:.2f}'.format(self.amount), self.cc])
-        return ','.join([str(self.pid), self.surname, '?', '?', '?'])
+        return ','.join([str(self.pid), self.surname, '?', '?', self.cc])
 
     def is_complete(self) -> bool:
         """Checks to see whether all fields of the Pledge object have been filled."""
