@@ -108,3 +108,5 @@ if __name__ == '__main__':
     for f in ['resources/temp.pdf', 'resources/temp2.pdf', 'resources/temp3.pdf', 'resources/temp4.pdf']:
         main(f)
     clear_cache()
+    # Below is the gist that I used to set up the multithreading with tesserocr:
+    # https://gist.github.com/arocketman/b74050b87a2c763e3023a1142dd70090
