@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 import textract
@@ -75,6 +76,7 @@ def main():
     files = os.listdir(path)
     paths = [os.path.join(path, basename) for basename in files]
     pdf_path = max(paths, key=os.path.getctime)
+    print(pdf_path)
 
     if len(sys.argv) > 2:
         print("This program only accepts a single argument!")
@@ -82,38 +84,42 @@ def main():
     elif len(sys.argv) == 2:
         pdf_path = path + sys.argv[1] + '.pdf'
 
-    text = [line.strip() for line in textract.process(pdf_path).decode('utf -8').split('\n') if len(line)]
+    text = [line.strip() for line in textract.process(pdf_path).decode('utf -8').split('\n')]
+    text = [line for line in text if len(line)]
+
+    regex_pattern = r'[78]\d{8} [a-zA-z -]+, [a-zA-z -]+'
+    index_lines = [i for i, line in enumerate(text) if re.search(regex_pattern, line)]
 
     total_amt = float(''.join([i for i in text[find_last(text, "Total Amount:") + 1] if i not in ['$', ',']]))
     pledge_count_index = text.index("TOTAL PLEDGES:")
     pledge_count = int(text[pledge_count_index + 1])
 
     pledges = []
+
     # initialize pledges list with Pledge objects, find PID and surname, and generate
     # identifying indices for each object.
     for x in range(pledge_count):
         p = Pledge()
-        index = find_nth_containing(text, '     ', x + 1)
-        index_line = text[index]
+        index = index_lines[x]
+        split_index_line = text[index].split(' ')
         p.index = index
-        p.pid = index_line.split('     ')[0].strip()
-        p.surname = index_line.split('     ')[1].split(',')[0].strip()
+        p.pid = split_index_line[0].strip()
+        p.surname = split_index_line[1].strip()[:-1]
         pledges.append(p)
 
     # loop through all Pledge objects
     for index, pledge in enumerate(pledges):
         # loop through all lines included in the following range: Pledge.index <= index < NextPledge.index
         lower_index = pledge.index if index > 0 else 0
-        upper_index = pledges[index + 1].index if index < pledge_count - 1 else pledge_count_index
+        upper_index = pledges[index + 1].index if index < (pledge_count - 1) else pledge_count_index
         for inner_idx, line in enumerate(text[lower_index:upper_index], start=lower_index):
             # find pledge type in scope
-            if line == "Specified Pledge" and pledge.cc == '':
-                pledge_type = text[inner_idx + 1]
-                if pledge_type == "Credit Card":
+            if pledge.cc == '':
+                if "Credit Card" in line:
                     pledge.cc = "X"
-                elif pledge_type == "Check":
+                elif "Check" in line:
                     pledge.cc = " "
-                else:
+                elif inner_idx == (upper_index - 1):
                     pledge.cc = "?"
             # find designation(s) in scope
             elif '*' in line:
@@ -126,16 +132,15 @@ def main():
                 pledge.add_designation(des)
             # find amount in scope
             elif inner_idx >= 2 and pledge.amount == 0 \
-                    and all(i == '$' for i in [line[0], text[inner_idx - 1][0], text[inner_idx - 2][0]]) \
-                    and text[inner_idx - 3] != 'Average':
-                pledge.amount = float(''.join([i for i in line if i not in ['$', ',']]))
+                    and "Total Amount:" in line:
+                pledge.amount = float(''.join([i for i in text[inner_idx+1] if i not in ['$', ',']]))
         # If the current Pledge object does not have a designation, clear the last object's designation and
         # amount in addition to this object's amount so that the appropriate designations and amounts may be
         # filled in manually.
         if index and not pledge.designation:
             pledge.amount = 0.0
-            pledges[index - 1].amount = 0.0
-            pledges[index - 1].designation = []
+            pledges[index-1].amount = 0.0
+            pledges[index-1].designation = []
 
     pledge_sum = sum([p.amount for p in pledges])
     out_str = '\n'.join([str(p) for p in pledges])
