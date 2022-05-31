@@ -90,7 +90,8 @@ def main():
     regex_pattern = r'[78]\d{8} [a-zA-z -]+, [a-zA-z -]+'
     index_lines = [i for i, line in enumerate(text) if re.search(regex_pattern, line)]
 
-    total_amt = float(''.join([i for i in text[find_last(text, "Total Amount:") + 1] if i not in ['$', ',']]))
+    last_ind = find_last(text, "Total Amount:")
+    total_amt = float(''.join([i for i in text[last_ind + 1] if i not in ['$', ',']]))
     pledge_count_index = text.index("TOTAL PLEDGES:")
     pledge_count = int(text[pledge_count_index + 1])
 
@@ -100,7 +101,10 @@ def main():
     # identifying indices for each object.
     for x in range(pledge_count):
         p = Pledge()
-        index = index_lines[x]
+        try:
+            index = index_lines[x]
+        except IndexError:
+            index = last_ind
         split_index_line = text[index].split(' ')
         p.index = index
         p.pid = split_index_line[0].strip()
